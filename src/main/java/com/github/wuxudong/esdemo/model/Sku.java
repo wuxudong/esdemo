@@ -21,4 +21,13 @@ public class Sku {
     private String detail;
     private int rank;
     private Date checkTime;
+
+    @Override
+    public String toString() {
+        return "Sku{" +
+                "id=" + id +
+                ", rank=" + rank +
+                ", checkTime=" + checkTime +
+                '}';
+    }
 }

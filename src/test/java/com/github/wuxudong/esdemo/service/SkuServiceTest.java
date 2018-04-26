@@ -62,9 +62,19 @@ public class SkuServiceTest {
 
     @org.junit.Test
     public void search() throws Exception {
-        Page<Sku> page = skuService.search("耳机", PageRequest.of(0, 5));
-        System.out.println(page.getTotalElements());
-        System.out.println(page.getContent());
+
+
+        long start = System.currentTimeMillis();
+        for (int i =0 ; i<1000; i++) {
+
+            Page<Sku> page = skuService.search("火烈鸟", PageRequest.of(0, 20));
+            System.out.println(page.getTotalElements());
+//            page.getContent().forEach(e -> System.out.println(e));
+        }
+
+        long end = System.currentTimeMillis();
+        System.out.println(end - start);
+
     }
 
 }

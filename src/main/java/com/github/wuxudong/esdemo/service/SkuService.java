@@ -2,7 +2,9 @@ package com.github.wuxudong.esdemo.service;
 
 import com.github.wuxudong.esdemo.model.Sku;
 import com.github.wuxudong.esdemo.repository.SkuRepository;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.MatchQueryBuilder;
+import org.elasticsearch.index.query.Operator;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.index.query.functionscore.FunctionScoreQueryBuilder;
 import org.elasticsearch.index.query.functionscore.ScoreFunctionBuilders;
@@ -13,6 +15,7 @@ import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilde
 import org.springframework.data.elasticsearch.core.query.SearchQuery;
 import org.springframework.stereotype.Component;
 
+import java.util.Date;
 import java.util.logging.Logger;
 
 @Component
@@ -27,36 +30,27 @@ public class SkuService {
     }
 
     public Page<Sku> search(String query, Pageable pageable) {
-//        FunctionScoreQueryBuilder.FilterFunctionBuilder title = new FunctionScoreQueryBuilder.FilterFunctionBuilder(QueryBuilders.matchQuery("title", query), ScoreFunctionBuilders.weightFactorFunction(1));
-//        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery(new FunctionScoreQueryBuilder.FilterFunctionBuilder[]{title});
-//        FunctionScoreQueryBuilder.FilterFunctionBuilder detail = new FunctionScoreQueryBuilder.FilterFunctionBuilder(QueryBuilders.matchQuery("detail", query), ScoreFunctionBuilders.weightFactorFunction(100));
+        FunctionScoreQueryBuilder.FilterFunctionBuilder rankScore = new FunctionScoreQueryBuilder.FilterFunctionBuilder(ScoreFunctionBuilders.fieldValueFactorFunction("rank"));
+        FunctionScoreQueryBuilder.FilterFunctionBuilder checkTimeScore = new FunctionScoreQueryBuilder.FilterFunctionBuilder(ScoreFunctionBuilders.gaussDecayFunction("checkTime", new Date().getTime(), 24 * 3600 * 1000));
+
+        BoolQueryBuilder queryBuilder = QueryBuilders.boolQuery().should(QueryBuilders.matchQuery("title", query).operator(Operator.AND)).should(QueryBuilders.matchQuery("detail", query).operator(Operator.AND));
 
 
         // Function Score Query
-        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery(QueryBuilders.matchQuery("title", query));
+        FunctionScoreQueryBuilder functionScoreQueryBuilder = QueryBuilders.functionScoreQuery(queryBuilder
+                , new FunctionScoreQueryBuilder.FilterFunctionBuilder[]{rankScore, checkTimeScore}
+        );
 
         // 创建搜索 DSL 查询
-        SearchQuery searchQuery = new NativeSearchQueryBuilder()
+        SearchQuery searchQuery = new NativeSearchQueryBuilder().withIndices("eshop")
                 .withPageable(pageable)
                 .withQuery(functionScoreQueryBuilder).build();
 
-        logger.info(functionScoreQueryBuilder.toString());
+//        logger.info(functionScoreQueryBuilder.toString());
 
         return skuRepository.search(searchQuery);
 
     }
 
-    public Page<Sku> plainSearch(String query, Pageable pageable) {
-        // 创建搜索 DSL 查询
-        MatchQueryBuilder title = QueryBuilders.matchQuery("title", query);
-        SearchQuery searchQuery = new NativeSearchQueryBuilder()
-                .withPageable(pageable)
-                .withQuery(title).build();
-
-        logger.info(title.toString());
-
-        return skuRepository.search(searchQuery);
-
-    }
 
 }
